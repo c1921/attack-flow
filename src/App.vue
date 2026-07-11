@@ -4,7 +4,9 @@ import type { Node, Edge, Connection } from '@vue-flow/core'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
+import { Controls } from '@vue-flow/controls'
 import '@vue-flow/minimap/dist/style.css'
+import '@vue-flow/controls/dist/style.css'
 
 // these components are only shown as examples of how to use a custom node or edge
 // you can find many examples of how to create these custom components in the examples page of the docs
@@ -110,6 +112,7 @@ function onConnect(connection: Connection) {
     </template>
     <Background patternColor="#2f2f2f"/>
     <MiniMap pannable zoomable :node-color="miniMapNodeColor" node-stroke-color="#555" />
+    <Controls />
   </VueFlow>
 </template>
 
@@ -123,6 +126,23 @@ function onConnect(connection: Connection) {
 
 .vue-flow__minimap {
   background-color: #2a2a2a;
+}
+
+.vue-flow__controls-button {
+  background: #2a2a2a;
+  border-bottom-color: #3a3a3a;
+}
+
+.vue-flow__controls-button:hover {
+  background: #333;
+}
+
+.vue-flow__controls-button svg {
+  fill: #ccc;
+}
+
+.vue-flow__controls {
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.3);
 }
 
 </style>
