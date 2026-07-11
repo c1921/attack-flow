@@ -15,9 +15,7 @@
     "format": "oxfmt src/"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.2",
     "@vue-flow/core": "^1.48.2",
-    "tailwindcss": "^4.3.2",
     "vue": "^3.5.38"
   },
   "devDependencies": {

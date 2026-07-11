@@ -1,6 +1,4 @@
-@import "tailwindcss";
-
-@theme {
+:root {
   --color-node-a: #82354c;
   --color-node-b: #2b652b;
   --color-node-c: #3c3c83;
@@ -26,4 +24,14 @@ body,
 #app {
   width: 100%;
   height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
