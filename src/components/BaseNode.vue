@@ -59,12 +59,21 @@ const handleClass = 'size-3! min-w-3! rounded-full border-none'
 <template>
   <div class="relative min-w-35 select-none font-sans">
     <!-- 端口和端口名 — 在容器外部，不受 overflow-hidden 裁切影响 -->
+    <!-- 左侧：输入（target）手柄，右侧：输出（source）手柄 -->
     <div v-for="(item, index) in resolvedItems" :key="'port-' + index"
-      class="absolute right-0 z-10 flex items-center gap-1"
+      class="absolute z-10 flex items-center gap-1"
+      :class="item.handleType === 'source' ? 'right-0' : 'left-0'"
       :style="{ top: 44 + index * 22 + 'px' }">
-      <span class="text-gray-200 text-[13px] whitespace-nowrap select-none mr-4">{{ item.label }}</span>
-      <Handle :id="item.label" :type="item.handleType ?? 'target'" :position="Position.Right"
-        :class="handleClass" :style="{ backgroundColor: item.color }" />
+      <template v-if="item.handleType === 'source'">
+        <span class="text-gray-200 text-[13px] whitespace-nowrap select-none mr-2">{{ item.label }}</span>
+        <Handle :id="item.label" type="source" :position="Position.Right"
+          :class="handleClass" :style="{ backgroundColor: item.color }" />
+      </template>
+      <template v-else>
+        <Handle :id="item.label" type="target" :position="Position.Left"
+          :class="handleClass" :style="{ backgroundColor: item.color }" />
+        <span class="text-gray-200 text-[13px] whitespace-nowrap select-none ml-2">{{ item.label }}</span>
+      </template>
     </div>
 
     <!-- 容器：外轮廓 + 灰色背景，圆角，通过 overflow-hidden 裁切头部 -->

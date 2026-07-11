@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { Node, Edge } from '@vue-flow/core'
+import type { Node, Edge, Connection } from '@vue-flow/core'
 import { VueFlow } from '@vue-flow/core'
 
 // these components are only shown as examples of how to use a custom node or edge
@@ -9,6 +9,7 @@ import SpecialNode from './components/SpecialNode.vue'
 import SpecialEdge from './components/SpecialEdge.vue'
 import ObjectInfoNode from './components/ObjectInfoNode.vue'
 import SceneNode from './components/SceneNode.vue'
+import ProcessNode from './components/ProcessNode.vue'
 
 // these are our nodes
 const nodes = ref<Node[]>([
@@ -76,6 +77,16 @@ const nodes = ref<Node[]>([
       label: '场景信息',
     },
   },
+
+  // process-node: has both inputs (left) and outputs (right)
+  {
+    id: '7',
+    type: 'process-node',
+    position: { x: 350, y: 400 },
+    data: {
+      label: '光照处理',
+    },
+  },
 ])
 
 // these are our edges
@@ -110,10 +121,22 @@ const edges = ref<Edge[]>([
     }
   },
 ])
+
+/** 处理新连接：将拖拽生成的连接加入 edges 数组 */
+function onConnect(connection: Connection) {
+  edges.value = [...edges.value, {
+    id: `e${connection.source}->${connection.target}`,
+    source: connection.source!,
+    target: connection.target!,
+    sourceHandle: connection.sourceHandle,
+    targetHandle: connection.targetHandle,
+  }]
+}
+
 </script>
 
 <template>
-  <VueFlow :nodes="nodes" :edges="edges">
+  <VueFlow :nodes="nodes" :edges="edges" @connect="onConnect">
     <!-- bind your custom node type to a component by using slots, slot names are always `node-<type>` -->
     <template #node-special="specialNodeProps">
       <SpecialNode v-bind="specialNodeProps" />
@@ -127,6 +150,11 @@ const edges = ref<Edge[]>([
     <!-- bind the scene-info node type -->
     <template #node-scene-info="sceneInfoProps">
       <SceneNode v-bind="sceneInfoProps" />
+    </template>
+
+    <!-- bind the process-node type -->
+    <template #node-process-node="processNodeProps">
+      <ProcessNode v-bind="processNodeProps" />
     </template>
 
     <!-- bind your custom edge type to a component by using slots, slot names are always `edge-<type>` -->
