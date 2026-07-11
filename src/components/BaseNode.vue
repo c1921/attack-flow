@@ -59,18 +59,16 @@ const borderColor = 'var(--color-node-border)'
   <div class="node-root">
     <!-- 端口和端口名 — 在容器外部，不受 overflow-hidden 裁切影响 -->
     <!-- 左侧：输入（target）手柄，右侧：输出（source）手柄 -->
-    <div v-for="(item, index) in resolvedItems" :key="'port-' + index"
-      class="port-row"
-      :class="item.handleType === 'source' ? 'port-right' : 'port-left'"
-      :style="{ top: 44 + index * 22 + 'px' }">
+    <div v-for="(item, index) in resolvedItems" :key="'port-' + index" class="port-row"
+      :class="item.handleType === 'source' ? 'port-right' : 'port-left'" :style="{ top: 44 + index * 22 + 'px' }">
       <template v-if="item.handleType === 'source'">
         <span class="port-label port-label-right">{{ item.label }}</span>
-        <Handle :id="item.label" type="source" :position="Position.Right"
-          class="handle" :style="{ backgroundColor: item.color }" />
+        <Handle :id="item.label" type="source" :position="Position.Right" class="handle"
+          :style="{ backgroundColor: item.color }" />
       </template>
       <template v-else>
-        <Handle :id="item.label" type="target" :position="Position.Left"
-          class="handle" :style="{ backgroundColor: item.color }" />
+        <Handle :id="item.label" type="target" :position="Position.Left" class="handle"
+          :style="{ backgroundColor: item.color }" />
         <span class="port-label port-label-left">{{ item.label }}</span>
       </template>
     </div>
@@ -78,14 +76,12 @@ const borderColor = 'var(--color-node-border)'
     <!-- 容器：外轮廓 + 灰色背景，圆角，通过 overflow-hidden 裁切头部 -->
     <div class="node-body" :style="{ backgroundColor: bodyBg, borderColor }">
       <!-- 头部 -->
-      <div class="node-header"
-        :style="{ backgroundColor: headerColor }">
+      <div class="node-header" :style="{ backgroundColor: headerColor }">
         <span>{{ resolvedLabel }}</span>
       </div>
       <!-- 内容项（不含手柄） -->
       <div class="node-content">
-        <div v-for="(item, index) in resolvedItems" :key="index"
-          class="node-placeholder"></div>
+        <div v-for="(item, index) in resolvedItems" :key="index" class="node-placeholder"></div>
       </div>
     </div>
   </div>
@@ -131,11 +127,11 @@ const borderColor = 'var(--color-node-border)'
 }
 
 .handle {
-  width: 12px !important;
-  height: 12px !important;
-  min-width: 12px !important;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
   border-radius: 9999px;
-  border: none !important;
+  border: 1px solid;
 }
 
 .node-body {
