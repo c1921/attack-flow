@@ -7,6 +7,8 @@ import { VueFlow } from '@vue-flow/core'
 // you can find many examples of how to create these custom components in the examples page of the docs
 import SpecialNode from './components/SpecialNode.vue'
 import SpecialEdge from './components/SpecialEdge.vue'
+import ObjectInfoNode from './components/ObjectInfoNode.vue'
+import SceneNode from './components/SceneNode.vue'
 
 // these are our nodes
 const nodes = ref<Node[]>([
@@ -45,6 +47,33 @@ const nodes = ref<Node[]>([
     data: {
       label: 'Node 4',
       hello: 'world',
+    },
+  },
+
+  // object-info: a custom collapsible node
+  {
+    id: '5',
+    type: 'object-info',
+    position: { x: 250, y: 250 },
+    data: {
+      label: '物体信息',
+      items: [
+        { label: '位置', portType: 1 },
+        { label: '颜色', portType: 2 },
+        { label: 'Alpha', portType: 3 },
+        { label: '物体编号', portType: 3 },
+        { label: '材质编号', portType: 3 },
+      ],
+    },
+  },
+
+  // scene-info: another collapsible node example
+  {
+    id: '6',
+    type: 'scene-info',
+    position: { x: 500, y: 250 },
+    data: {
+      label: '场景信息',
     },
   },
 ])
@@ -90,7 +119,18 @@ const edges = ref<Edge[]>([
       <SpecialNode v-bind="specialNodeProps" />
     </template>
 
+    <!-- bind the object-info node type -->
+    <template #node-object-info="objectInfoProps">
+      <ObjectInfoNode v-bind="objectInfoProps" />
+    </template>
+
+    <!-- bind the scene-info node type -->
+    <template #node-scene-info="sceneInfoProps">
+      <SceneNode v-bind="sceneInfoProps" />
+    </template>
+
     <!-- bind your custom edge type to a component by using slots, slot names are always `edge-<type>` -->
+
     <template #edge-special="specialEdgeProps">
       <SpecialEdge v-bind="specialEdgeProps" />
     </template>
