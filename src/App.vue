@@ -2,6 +2,9 @@
 import { ref } from 'vue'
 import type { Node, Edge, Connection } from '@vue-flow/core'
 import { VueFlow } from '@vue-flow/core'
+import { Background } from '@vue-flow/background'
+import { MiniMap } from '@vue-flow/minimap'
+import '@vue-flow/minimap/dist/style.css'
 
 // these components are only shown as examples of how to use a custom node or edge
 // you can find many examples of how to create these custom components in the examples page of the docs
@@ -10,6 +13,16 @@ import SpecialEdge from './components/SpecialEdge.vue'
 import ObjectInfoNode from './components/ObjectInfoNode.vue'
 import SceneNode from './components/SceneNode.vue'
 import ProcessNode from './components/ProcessNode.vue'
+
+function miniMapNodeColor(node: { type?: string }): string {
+  const colors: Record<string, string> = {
+    'object-info': '#82354c',
+    'scene-info': '#2b652b',
+    'process-node': '#3c3c83',
+    special: '#666',
+  }
+  return colors[node.type ?? ''] ?? '#ccc'
+}
 
 // these are our nodes
 const nodes = ref<Node[]>([
@@ -95,10 +108,21 @@ function onConnect(connection: Connection) {
     <template #edge-special="specialEdgeProps">
       <SpecialEdge v-bind="specialEdgeProps" />
     </template>
+    <Background patternColor="#2f2f2f"/>
+    <MiniMap pannable zoomable :node-color="miniMapNodeColor" node-stroke-color="#555" />
   </VueFlow>
 </template>
 
 <style>
 /* import the necessary styles for Vue Flow to work */
 @import '@vue-flow/core/dist/style.css';
+
+.vue-flow {
+  background-color: #1a1a1a;
+}
+
+.vue-flow__minimap {
+  background-color: #2a2a2a;
+}
+
 </style>
