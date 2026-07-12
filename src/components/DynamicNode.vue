@@ -1,15 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { NodeProps } from '@vue-flow/core'
 import BaseNode from './BaseNode.vue'
 import { NODE_PRESETS } from '../constants/nodes'
 
-defineProps<NodeProps>()
+const props = defineProps<NodeProps>()
 
-const preset = NODE_PRESETS['scene-info']
+const preset = computed(() => NODE_PRESETS[props.type ?? ''])
 </script>
 
 <template>
   <BaseNode
+    v-if="preset"
     v-bind="$props"
     :node-type="preset.nodeType"
     :label="preset.label"

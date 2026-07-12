@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { Node, Edge, Connection, OnConnectStartParams } from '@vue-flow/core'
+import { ref, computed, markRaw } from 'vue'
+import type { Node, Edge, Connection, OnConnectStartParams, NodeComponent } from '@vue-flow/core'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
@@ -8,14 +8,17 @@ import { Controls } from '@vue-flow/controls'
 import '@vue-flow/minimap/dist/style.css'
 import '@vue-flow/controls/dist/style.css'
 
-import ObjectInfoNode from './components/ObjectInfoNode.vue'
-import SceneNode from './components/SceneNode.vue'
-import ProcessNode from './components/ProcessNode.vue'
+import DynamicNode from './components/DynamicNode.vue'
 
 import CanvasContextMenu from './components/CanvasContextMenu.vue'
 
 import { getPortColor, NODE_TYPE_COLORS } from './constants/colors'
 import { NODE_PRESETS } from './constants/nodes'
+
+// 从 NODE_PRESETS 自动生成节点类型 → DynamicNode 的注册表
+const nodeTypes = Object.fromEntries(
+  Object.keys(NODE_PRESETS).map((key) => [key, markRaw(DynamicNode)]),
+) as Record<string, NodeComponent>
 
 function miniMapNodeColor(node: { type?: string }): string {
   return NODE_TYPE_COLORS[node.type ?? ''] ?? '#ccc'
@@ -154,22 +157,7 @@ function addNode(type: string) {
 
 <template>
   <CanvasContextMenu @add-node="addNode">
-    <VueFlow v-model:nodes="nodes" v-model:edges="edges" @connect="onConnect" :connection-line-options="connectionLineOptions" @connect-start="onConnectStart" @connect-end="onConnectEnd">
-      <!-- bind the object-info node type -->
-      <template #node-object-info="objectInfoProps">
-        <ObjectInfoNode v-bind="objectInfoProps" />
-      </template>
-
-      <!-- bind the scene-info node type -->
-      <template #node-scene-info="sceneInfoProps">
-        <SceneNode v-bind="sceneInfoProps" />
-      </template>
-
-      <!-- bind the process-node type -->
-      <template #node-process-node="processNodeProps">
-        <ProcessNode v-bind="processNodeProps" />
-      </template>
-
+    <VueFlow v-model:nodes="nodes" v-model:edges="edges" :node-types="nodeTypes" @connect="onConnect" :connection-line-options="connectionLineOptions" @connect-start="onConnectStart" @connect-end="onConnectEnd">
       <Background patternColor="#2f2f2f"/>
       <MiniMap pannable zoomable :node-color="miniMapNodeColor" node-stroke-color="#555" />
       <Controls />
