@@ -1,24 +1,18 @@
 <script setup lang="ts">
 import type { NodeProps } from '@vue-flow/core'
 import BaseNode from './BaseNode.vue'
-import type { PortItem } from './BaseNode.vue'
+import { NODE_PRESETS } from '../constants/nodes'
 
-const props = defineProps<NodeProps>()
+defineProps<NodeProps>()
 
-const items: PortItem[] = [
-  { label: '场景名称', portType: 4 },
-  { label: '光照类型', portType: 3 },
-  { label: '环境光色', portType: 3 },
-  { label: '阴影', portType: 1 },
-  { label: '雾效强度', portType: 1 },
-]
+const preset = NODE_PRESETS['scene-info']
 </script>
 
 <template>
   <BaseNode
-    v-bind="props"
-    node-type="B"
-    label="场景信息"
-    :items="items"
+    v-bind="$props"
+    :node-type="preset.nodeType"
+    :label="preset.label"
+    :items="preset.items"
   />
 </template>

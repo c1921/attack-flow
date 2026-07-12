@@ -12,7 +12,10 @@ import ObjectInfoNode from './components/ObjectInfoNode.vue'
 import SceneNode from './components/SceneNode.vue'
 import ProcessNode from './components/ProcessNode.vue'
 
+import CanvasContextMenu from './components/CanvasContextMenu.vue'
+
 import { getPortColor, NODE_TYPE_COLORS } from './constants/colors'
+import { NODE_PRESETS } from './constants/nodes'
 
 function miniMapNodeColor(node: { type?: string }): string {
   return NODE_TYPE_COLORS[node.type ?? ''] ?? '#ccc'
@@ -126,29 +129,52 @@ function onConnectEnd() {
   connectionLineColor.value = '#3b82f6'
 }
 
+/** 新增节点：右键菜单触发 */
+let nextId = 8
+
+function addNode(type: string) {
+  const preset = NODE_PRESETS[type]
+  if (!preset) return
+
+  const id = String(nextId++)
+  const offset = nodes.value.length * 40
+
+  nodes.value = [...nodes.value, {
+    id,
+    type,
+    position: { x: 100 + offset, y: 100 + offset },
+    data: {
+      label: preset.label,
+      items: preset.items,
+    },
+  }]
+}
+
 </script>
 
 <template>
-  <VueFlow :nodes="nodes" :edges="edges" @connect="onConnect" :connection-line-options="connectionLineOptions" @connect-start="onConnectStart" @connect-end="onConnectEnd">
-    <!-- bind the object-info node type -->
-    <template #node-object-info="objectInfoProps">
-      <ObjectInfoNode v-bind="objectInfoProps" />
-    </template>
+  <CanvasContextMenu @add-node="addNode">
+    <VueFlow v-model:nodes="nodes" v-model:edges="edges" @connect="onConnect" :connection-line-options="connectionLineOptions" @connect-start="onConnectStart" @connect-end="onConnectEnd">
+      <!-- bind the object-info node type -->
+      <template #node-object-info="objectInfoProps">
+        <ObjectInfoNode v-bind="objectInfoProps" />
+      </template>
 
-    <!-- bind the scene-info node type -->
-    <template #node-scene-info="sceneInfoProps">
-      <SceneNode v-bind="sceneInfoProps" />
-    </template>
+      <!-- bind the scene-info node type -->
+      <template #node-scene-info="sceneInfoProps">
+        <SceneNode v-bind="sceneInfoProps" />
+      </template>
 
-    <!-- bind the process-node type -->
-    <template #node-process-node="processNodeProps">
-      <ProcessNode v-bind="processNodeProps" />
-    </template>
+      <!-- bind the process-node type -->
+      <template #node-process-node="processNodeProps">
+        <ProcessNode v-bind="processNodeProps" />
+      </template>
 
-    <Background patternColor="#2f2f2f"/>
-    <MiniMap pannable zoomable :node-color="miniMapNodeColor" node-stroke-color="#555" />
-    <Controls />
-  </VueFlow>
+      <Background patternColor="#2f2f2f"/>
+      <MiniMap pannable zoomable :node-color="miniMapNodeColor" node-stroke-color="#555" />
+      <Controls />
+    </VueFlow>
+  </CanvasContextMenu>
 </template>
 
 <style>
