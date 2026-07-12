@@ -8,22 +8,14 @@ import { Controls } from '@vue-flow/controls'
 import '@vue-flow/minimap/dist/style.css'
 import '@vue-flow/controls/dist/style.css'
 
-// these components are only shown as examples of how to use a custom node or edge
-// you can find many examples of how to create these custom components in the examples page of the docs
-import SpecialNode from './components/SpecialNode.vue'
-import SpecialEdge from './components/SpecialEdge.vue'
 import ObjectInfoNode from './components/ObjectInfoNode.vue'
 import SceneNode from './components/SceneNode.vue'
 import ProcessNode from './components/ProcessNode.vue'
 
+import { getPortColor, NODE_TYPE_COLORS } from './constants/colors'
+
 function miniMapNodeColor(node: { type?: string }): string {
-  const colors: Record<string, string> = {
-    'object-info': '#82354c',
-    'scene-info': '#2b652b',
-    'process-node': '#3c3c83',
-    special: '#666',
-  }
-  return colors[node.type ?? ''] ?? '#ccc'
+  return NODE_TYPE_COLORS[node.type ?? ''] ?? '#ccc'
 }
 
 // these are our nodes
@@ -46,13 +38,20 @@ const nodes = ref<Node[]>([
     },
   },
 
-  // scene-info: another collapsible node example
+  // scene-info
   {
     id: '6',
     type: 'scene-info',
     position: { x: 500, y: 250 },
     data: {
       label: '场景信息',
+      items: [
+        { label: '场景名称', portType: 4 },
+        { label: '光照类型', portType: 3 },
+        { label: '环境光色', portType: 3 },
+        { label: '阴影', portType: 1 },
+        { label: '雾效强度', portType: 1 },
+      ],
     },
   },
 
@@ -63,6 +62,14 @@ const nodes = ref<Node[]>([
     position: { x: 350, y: 400 },
     data: {
       label: '光照处理',
+      items: [
+        { label: '光照类型', portType: 3 },
+        { label: '环境光色', portType: 3 },
+        { label: '阴影', portType: 1 },
+        { label: '雾效强度', portType: 1 },
+        { label: '最终光照', portType: 2, handleType: 'source' },
+        { label: '阴影贴图', portType: 4, handleType: 'source' },
+      ],
     },
   },
 ])
@@ -70,33 +77,20 @@ const nodes = ref<Node[]>([
 // these are our edges
 const edges = ref<Edge[]>([])
 
-/** 端口类型 → 端口颜色（与 main.css 中的 CSS 变量一致） */
-const PORT_COLORS: Record<number, string> = {
-  1: '#c7c729',
-  2: '#63c763',
-  3: '#6363c7',
-  4: '#a1a1a1',
-}
-
-/**
- * 通过 Handle DOM 元素的 data-port-type 获取端口颜色
- * 使用 CSS 变量取值以保证与主题定义一致
- */
-function getPortColor(portType: number): string {
-  return PORT_COLORS[portType] ?? '#888888'
+/** 根据节点 ID 和 Handle ID 从 nodes 数据中查找端口类型 */
+function findPortType(nodeId: string | null | undefined, handleId: string | null | undefined): number | null {
+  if (!nodeId || !handleId) return null
+  const node = nodes.value.find(n => n.id === nodeId)
+  const items = node?.data?.items as Array<{ label: string; portType: number }> | undefined
+  if (!items) return null
+  const item = items.find(i => i.label === handleId)
+  return item?.portType ?? null
 }
 
 /** 处理新连接：将拖拽生成的连接加入 edges 数组，并自动匹配 source 端口颜色 */
 function onConnect(connection: Connection) {
-  // 尝试从 sourceHandle 对应的 DOM 元素读取 data-port-type
-  let color = '#888888'
-  if (connection.sourceHandle) {
-    const handleEl = document.querySelector(`[data-handleid="${connection.sourceHandle}"]`)
-    const portType = handleEl?.getAttribute('data-port-type')
-    if (portType) {
-      color = getPortColor(Number(portType))
-    }
-  }
+  const portType = findPortType(connection.source, connection.sourceHandle)
+  const color = portType != null ? getPortColor(portType) : '#888888'
 
   edges.value = [...edges.value, {
     id: `e${connection.source}->${connection.target}__${connection.sourceHandle}->${connection.targetHandle}`,
@@ -121,17 +115,10 @@ const connectionLineOptions = computed(() => ({
   },
 }))
 
-/** 拖拽开始时读取 source 端口的 data-port-type，匹配颜色 */
-function onConnectStart({ handleId }: OnConnectStartParams) {
-  if (handleId) {
-    const handleEl = document.querySelector(`[data-handleid="${handleId}"]`)
-    const portType = handleEl?.getAttribute('data-port-type')
-    if (portType) {
-      connectionLineColor.value = getPortColor(Number(portType))
-      return
-    }
-  }
-  connectionLineColor.value = '#3b82f6'
+/** 拖拽开始时从 nodes 数据查找 source 端口颜色 */
+function onConnectStart({ nodeId, handleId }: OnConnectStartParams) {
+  const portType = findPortType(nodeId, handleId)
+  connectionLineColor.value = portType != null ? getPortColor(portType) : '#3b82f6'
 }
 
 /** 拖拽结束后重置为蓝色兜底 */
@@ -143,11 +130,6 @@ function onConnectEnd() {
 
 <template>
   <VueFlow :nodes="nodes" :edges="edges" @connect="onConnect" :connection-line-options="connectionLineOptions" @connect-start="onConnectStart" @connect-end="onConnectEnd">
-    <!-- bind your custom node type to a component by using slots, slot names are always `node-<type>` -->
-    <template #node-special="specialNodeProps">
-      <SpecialNode v-bind="specialNodeProps" />
-    </template>
-
     <!-- bind the object-info node type -->
     <template #node-object-info="objectInfoProps">
       <ObjectInfoNode v-bind="objectInfoProps" />
@@ -163,11 +145,6 @@ function onConnectEnd() {
       <ProcessNode v-bind="processNodeProps" />
     </template>
 
-    <!-- bind your custom edge type to a component by using slots, slot names are always `edge-<type>` -->
-
-    <template #edge-special="specialEdgeProps">
-      <SpecialEdge v-bind="specialEdgeProps" />
-    </template>
     <Background patternColor="#2f2f2f"/>
     <MiniMap pannable zoomable :node-color="miniMapNodeColor" node-stroke-color="#555" />
     <Controls />

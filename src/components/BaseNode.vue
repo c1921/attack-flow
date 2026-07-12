@@ -2,16 +2,12 @@
 import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { NodeProps } from '@vue-flow/core'
+import { NODE_COLORS, nodeColorAsCssVar } from '../constants/colors'
 
-/** 节点类型 → 头部背景色（CSS 变量，定义在 main.css @theme 中） */
-const NODE_HEADER_COLORS: Record<string, string> = {
-  A: 'var(--color-node-a)',
-  B: 'var(--color-node-b)',
-  C: 'var(--color-node-c)',
-  D: 'var(--color-node-d)',
-  E: 'var(--color-node-e)',
-  F: 'var(--color-node-f)',
-}
+/** 节点类型 → 头部背景色（CSS 变量引用，由共享常量生成） */
+const NODE_HEADER_COLORS: Record<string, string> = Object.fromEntries(
+  Object.keys(NODE_COLORS).map((key) => [key, nodeColorAsCssVar(key)]),
+)
 
 /** 端口类型 → 端口颜色（CSS 变量，定义在 main.css @theme 中） */
 const PORT_COLORS: Record<number, string> = {
