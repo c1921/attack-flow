@@ -64,11 +64,11 @@ const borderColor = 'var(--color-node-border)'
       <template v-if="item.handleType === 'source'">
         <span class="port-label port-label-right">{{ item.label }}</span>
         <Handle :id="item.label" type="source" :position="Position.Right" class="handle"
-          :style="{ backgroundColor: item.color }" />
+          :style="{ backgroundColor: item.color }" :data-port-type="item.portType" />
       </template>
       <template v-else>
         <Handle :id="item.label" type="target" :position="Position.Left" class="handle"
-          :style="{ backgroundColor: item.color }" />
+          :style="{ backgroundColor: item.color }" :data-port-type="item.portType" />
         <span class="port-label port-label-left">{{ item.label }}</span>
       </template>
     </div>
