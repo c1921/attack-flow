@@ -88,7 +88,6 @@ const borderColor = 'var(--color-node-border)'
   position: relative;
   min-width: 140px;
   user-select: none;
-  font-family: system-ui, sans-serif;
 }
 
 .port-row {
