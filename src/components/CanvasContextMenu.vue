@@ -63,7 +63,7 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
-.context-menu-content {
+:global(.context-menu-content) {
   min-width: 160px;
   padding: 4px;
   background-color: #2a2a2a;
@@ -73,13 +73,14 @@ const emit = defineEmits<{
   font-size: 13px;
   color: #e5e7eb;
   user-select: none;
+  z-index: 1000;
 }
 
-.sub-content {
+:global(.sub-content) {
   min-width: 140px;
 }
 
-.context-menu-item {
+:global(.context-menu-item) {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -88,24 +89,25 @@ const emit = defineEmits<{
   cursor: pointer;
   outline: none;
   transition: background-color 0.15s;
+  color: #e5e7eb;
 }
 
-.context-menu-item:hover,
-.context-menu-item[data-highlighted] {
+:global(.context-menu-item:hover),
+:global(.context-menu-item[data-highlighted]) {
   background-color: #3a3a3a;
 }
 
-.context-menu-item[data-disabled] {
+:global(.context-menu-item[data-disabled]) {
   opacity: 0.4;
   pointer-events: none;
 }
 
-.context-menu-icon {
+:global(.context-menu-icon) {
   font-size: 14px;
   line-height: 1;
 }
 
-.color-dot {
+:global(.color-dot) {
   width: 10px;
   height: 10px;
   border-radius: 50%;
