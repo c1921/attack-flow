@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import {
   ContextMenuContent,
   ContextMenuItem,
@@ -24,14 +25,21 @@ const nodeTypes: NodeTypeOption[] = [
   { key: 'process-node', label: '光照处理', color: NODE_TYPE_COLORS['process-node'] },
 ]
 
+/** 右键点击时的屏幕坐标（viewport 像素） */
+const clickPosition = ref({ x: 0, y: 0 })
+
+function capturePosition(e: MouseEvent) {
+  clickPosition.value = { x: e.clientX, y: e.clientY }
+}
+
 const emit = defineEmits<{
-  'add-node': [type: string]
+  'add-node': [type: string, position: { x: number; y: number }]
 }>()
 </script>
 
 <template>
   <ContextMenuRoot>
-    <ContextMenuTrigger asChild>
+    <ContextMenuTrigger asChild @contextmenu="capturePosition">
       <slot />
     </ContextMenuTrigger>
 
@@ -49,7 +57,7 @@ const emit = defineEmits<{
                 v-for="item in nodeTypes"
                 :key="item.key"
                 class="context-menu-item"
-                @select="emit('add-node', item.key)"
+                @select="emit('add-node', item.key, clickPosition)"
               >
                 <span class="color-dot" :style="{ backgroundColor: item.color }" />
                 {{ item.label }}

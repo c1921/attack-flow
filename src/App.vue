@@ -2,6 +2,7 @@
 import { ref, computed, markRaw } from 'vue'
 import type { Node, Edge, Connection, OnConnectStartParams, NodeComponent } from '@vue-flow/core'
 import { VueFlow } from '@vue-flow/core'
+import { useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
 import { Controls } from '@vue-flow/controls'
@@ -14,6 +15,8 @@ import CanvasContextMenu from './components/CanvasContextMenu.vue'
 
 import { getPortColor, NODE_TYPE_COLORS } from './constants/colors'
 import { NODE_PRESETS } from './constants/nodes'
+
+const { screenToFlowCoordinate } = useVueFlow()
 
 // 从 NODE_PRESETS 自动生成节点类型 → DynamicNode 的注册表
 const nodeTypes = Object.fromEntries(
@@ -135,17 +138,16 @@ function onConnectEnd() {
 /** 新增节点：右键菜单触发 */
 let nextId = 8
 
-function addNode(type: string) {
+function addNode(type: string, screenPos: { x: number; y: number }) {
   const preset = NODE_PRESETS[type]
   if (!preset) return
 
   const id = String(nextId++)
-  const offset = nodes.value.length * 40
 
   nodes.value = [...nodes.value, {
     id,
     type,
-    position: { x: 100 + offset, y: 100 + offset },
+    position: screenToFlowCoordinate(screenPos),
     data: {
       label: preset.label,
       items: preset.items,
