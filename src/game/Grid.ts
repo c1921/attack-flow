@@ -1,4 +1,5 @@
 import { Graphics } from 'pixi.js'
+import { GROUND_COLOR, GRID_LINE_COLOR } from './colors'
 
 /** 网格相关常量 */
 export const GRID_CELL = 48
@@ -13,9 +14,7 @@ export function createGrid(gfx: Graphics, screenW: number, screenH: number): voi
   const h = screenH + cell * 2
 
   // 背景
-  gfx.rect(0, 0, w, h).fill({ color: 0x1a1a2e })
-
-  const lineColor = 0x2a2a4a
+  gfx.rect(0, 0, w, h).fill({ color: GROUND_COLOR })
 
   for (let x = 0; x <= w; x += cell) {
     gfx.moveTo(x, 0).lineTo(x, h)
@@ -24,7 +23,7 @@ export function createGrid(gfx: Graphics, screenW: number, screenH: number): voi
     gfx.moveTo(0, y).lineTo(w, y)
   }
 
-  gfx.stroke({ width: 1, color: lineColor, alpha: 0.6 })
+  gfx.stroke({ width: 1, color: GRID_LINE_COLOR, alpha: 0.6 })
 }
 
 /**

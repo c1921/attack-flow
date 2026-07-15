@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js'
+import { ENEMY_FILL_COLOR, ENEMY_STROKE_COLOR } from './colors'
 
 /** 单个敌人 */
 export interface Enemy {
@@ -16,16 +17,15 @@ export interface Enemy {
 interface EnemyTemplate {
   /** 顶点数（3=三角形, 4=方形, 5=五边形） */
   sides: number
-  color: number
   hp: number
   speed: number
   radius: number
 }
 
 const TEMPLATES: EnemyTemplate[] = [
-  { sides: 3, color: 0xff4444, hp: 2, speed: 100, radius: 12 },
-  { sides: 4, color: 0xff8844, hp: 3, speed: 75, radius: 14 },
-  { sides: 5, color: 0xff44aa, hp: 5, speed: 55, radius: 16 },
+  { sides: 3, hp: 2, speed: 100, radius: 12 },
+  { sides: 4, hp: 3, speed: 75, radius: 14 },
+  { sides: 5, hp: 5, speed: 55, radius: 16 },
 ]
 
 /** 在玩家周围生成敌人的圆半径（大于可视范围对角线一半约 470px） */
@@ -72,8 +72,8 @@ function createEnemyGfx(tmpl: EnemyTemplate): Graphics {
   }
 
   gfx.poly(points, true)
-  gfx.fill({ color: tmpl.color, alpha: 0.85 })
-  gfx.stroke({ width: 1.5, color: 0xffffff, alpha: 0.3 })
+  gfx.fill({ color: ENEMY_FILL_COLOR, alpha: 0.85 })
+  gfx.stroke({ width: 1.5, color: ENEMY_STROKE_COLOR, alpha: 0.5 })
 
   return gfx
 }

@@ -1,5 +1,6 @@
 import { Graphics } from 'pixi.js'
 import type { InputState } from './types'
+import { PLAYER_COLOR, PLAYER_INNER_COLOR } from './colors'
 
 /** 玩家实体 */
 export interface Player {
@@ -20,11 +21,11 @@ export function createPlayer(x: number, y: number): Player {
 
   // 外层蓝色尖锐箭头 — 顶点朝上 (-y)，rotation 0 = 朝上
   gfx.poly([0, -16, -10, 8, 10, 8], true)
-  gfx.fill({ color: 0x4488ff })
+  gfx.fill({ color: PLAYER_COLOR })
 
   // 亮色内核
   gfx.poly([0, -10, -5, 4, 5, 4], true)
-  gfx.fill({ color: 0x88bbff, alpha: 0.7 })
+  gfx.fill({ color: PLAYER_INNER_COLOR, alpha: 0.7 })
 
   gfx.x = x
   gfx.y = y

@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js'
 import type { Enemy } from './EnemySpawner'
+import { PROJECTILE_COLOR, PROJECTILE_CORE_COLOR } from './colors'
 
 /** 单个发射物 */
 export interface Projectile {
@@ -25,7 +26,6 @@ export interface ProjectileManager {
 
 const PROJECTILE_SPEED = 420
 const PROJECTILE_RADIUS = 4
-const PROJECTILE_COLOR = 0x44ddff
 /** 发射物飞行超过此距离（离玩家）则销毁 */
 const MAX_FLIGHT_DISTANCE = 800
 
@@ -49,7 +49,7 @@ function createProjectileGfx(): Graphics {
   gfx.circle(0, 0, PROJECTILE_RADIUS + 2)
   gfx.fill({ color: PROJECTILE_COLOR, alpha: 0.4 })
   gfx.circle(0, 0, PROJECTILE_RADIUS)
-  gfx.fill({ color: 0xffffff, alpha: 0.9 })
+  gfx.fill({ color: PROJECTILE_CORE_COLOR, alpha: 0.9 })
   gfx.circle(0, 0, PROJECTILE_RADIUS - 1)
   gfx.fill({ color: PROJECTILE_COLOR })
   return gfx
