@@ -10,6 +10,7 @@ import '@vue-flow/minimap/dist/style.css'
 import '@vue-flow/controls/dist/style.css'
 
 import DynamicNode from './components/DynamicNode.vue'
+import PixiCanvas from './components/PixiCanvas.vue'
 
 import CanvasContextMenu from './components/CanvasContextMenu.vue'
 
@@ -158,18 +159,64 @@ function addNode(type: string, screenPos: { x: number; y: number }) {
 </script>
 
 <template>
-  <CanvasContextMenu @add-node="addNode">
-    <VueFlow v-model:nodes="nodes" v-model:edges="edges" :node-types="nodeTypes" @connect="onConnect" :connection-line-options="connectionLineOptions" @connect-start="onConnectStart" @connect-end="onConnectEnd">
-      <Background patternColor="#2f2f2f"/>
-      <MiniMap pannable zoomable :node-color="miniMapNodeColor" node-stroke-color="#555" />
-      <Controls />
-    </VueFlow>
-  </CanvasContextMenu>
+  <div class="app-layout">
+    <div class="editor-panel">
+      <CanvasContextMenu @add-node="addNode">
+        <VueFlow v-model:nodes="nodes" v-model:edges="edges" :node-types="nodeTypes" @connect="onConnect" :connection-line-options="connectionLineOptions" @connect-start="onConnectStart" @connect-end="onConnectEnd">
+          <Background patternColor="#2f2f2f"/>
+          <MiniMap pannable zoomable :node-color="miniMapNodeColor" node-stroke-color="#555" />
+          <Controls />
+        </VueFlow>
+      </CanvasContextMenu>
+    </div>
+    <div class="preview-panel">
+      <div class="preview-header">场景预览</div>
+      <PixiCanvas />
+    </div>
+  </div>
 </template>
 
 <style>
 /* import the necessary styles for Vue Flow to work */
 @import '@vue-flow/core/dist/style.css';
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-layout {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+.editor-panel {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.preview-panel {
+  width: 380px;
+  flex-shrink: 0;
+  border-left: 1px solid #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  background: #12121a;
+}
+
+.preview-header {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8888aa;
+  border-bottom: 1px solid #2a2a2a;
+  user-select: none;
+}
 
 .vue-flow {
   background-color: #1a1a1a;
