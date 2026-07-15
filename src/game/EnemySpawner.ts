@@ -28,6 +28,12 @@ const TEMPLATES: EnemyTemplate[] = [
   { sides: 5, color: 0xff44aa, hp: 5, speed: 55, radius: 16 },
 ]
 
+/** 在玩家周围生成敌人的圆半径（大于可视范围对角线一半约 470px） */
+const SPAWN_RADIUS = 500
+
+/** 敌人距离玩家超过此值则自动销毁 */
+const CLEANUP_DISTANCE = 2000
+
 /** 敌人生成器 */
 export interface EnemySpawner {
   enemies: Enemy[]
@@ -73,30 +79,17 @@ function createEnemyGfx(tmpl: EnemyTemplate): Graphics {
 }
 
 /**
- * 在区域边缘随机生成一个敌人。
+ * 在以玩家为圆心、spawnRadius 为半径的圆上随机生成一个敌人。
  */
-function spawnAtEdge(w: number, h: number, tmpl: EnemyTemplate): Enemy {
-  // 随机选择边：0=上, 1=右, 2=下, 3=左
-  const edge = Math.floor(Math.random() * 4)
-  let x: number, y: number
-
-  switch (edge) {
-    case 0: // 上
-      x = Math.random() * w
-      y = -20
-      break
-    case 1: // 右
-      x = w + 20
-      y = Math.random() * h
-      break
-    case 2: // 下
-      x = Math.random() * w
-      y = h + 20
-      break
-    default: // 左
-      x = -20
-      y = Math.random() * h
-  }
+function spawnOnCircle(
+  playerX: number,
+  playerY: number,
+  spawnRadius: number,
+  tmpl: EnemyTemplate,
+): Enemy {
+  const angle = Math.random() * Math.PI * 2
+  const x = playerX + Math.cos(angle) * spawnRadius
+  const y = playerY + Math.sin(angle) * spawnRadius
 
   const gfx = createEnemyGfx(tmpl)
   gfx.x = x
@@ -120,8 +113,6 @@ function spawnAtEdge(w: number, h: number, tmpl: EnemyTemplate): Enemy {
  * @param dt 帧间隔（秒）
  * @param playerX 玩家 X
  * @param playerY 玩家 Y
- * @param boundsW 区域宽度
- * @param boundsH 区域高度
  * @param enemyLayer 敌人所在的 Container（新增敌人 addChild 到此）
  */
 export function updateEnemySpawner(
@@ -129,8 +120,6 @@ export function updateEnemySpawner(
   dt: number,
   playerX: number,
   playerY: number,
-  boundsW: number,
-  boundsH: number,
   enemyLayer: Container,
 ): void {
   spawner.elapsed += dt
@@ -143,7 +132,7 @@ export function updateEnemySpawner(
   while (spawner.spawnTimer >= spawner.spawnInterval) {
     spawner.spawnTimer -= spawner.spawnInterval
     const tmpl = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)]!
-    const enemy = spawnAtEdge(boundsW, boundsH, tmpl)
+    const enemy = spawnOnCircle(playerX, playerY, SPAWN_RADIUS, tmpl)
     spawner.enemies.push(enemy)
     enemyLayer.addChild(enemy.gfx)
   }
@@ -163,6 +152,11 @@ export function updateEnemySpawner(
 
     enemy.gfx.x = enemy.x
     enemy.gfx.y = enemy.y
+
+    // 离玩家太远则自动销毁
+    if (dist > CLEANUP_DISTANCE) {
+      enemy.active = false
+    }
   }
 }
 

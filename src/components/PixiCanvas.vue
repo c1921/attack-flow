@@ -2,7 +2,8 @@
 import { ref, watch, onUnmounted } from 'vue'
 import { Container, Graphics } from 'pixi.js'
 import { usePixiApp } from '@/composables/usePixiApp'
-import { drawGrid } from '@/game/Grid'
+import { createGrid, syncGrid } from '@/game/Grid'
+import { createCamera, updateCamera } from '@/game/Camera'
 import { createPlayer, updatePlayer } from '@/game/Player'
 import {
   createEnemySpawner,
@@ -18,6 +19,7 @@ import type { InputState } from '@/game/types'
 import type { Player } from '@/game/Player'
 import type { EnemySpawner } from '@/game/EnemySpawner'
 import type { ProjectileManager } from '@/game/ProjectileManager'
+import type { Camera } from '@/game/Camera'
 
 const container = ref<HTMLDivElement>()
 const { isReady, app } = usePixiApp(container, {
@@ -25,11 +27,14 @@ const { isReady, app } = usePixiApp(container, {
 })
 
 // ── 游戏状态 ──────────────────────────────────────────────────
+let camera: Camera | null = null
+let worldContainer: Container | null = null
+let gridGfx: Graphics | null = null
 let player: Player | null = null
 let enemySpawner: EnemySpawner | null = null
 let projectileMgr: ProjectileManager | null = null
 
-// 图层
+// 图层（在 worldContainer 内）
 let enemyLayer: Container | null = null
 let projectileLayer: Container | null = null
 
@@ -61,22 +66,29 @@ function buildGame(): void {
   const w = app.value.screen.width
   const h = app.value.screen.height
 
-  // 网格地面（底层）
-  const gridGfx = new Graphics()
-  drawGrid(gridGfx, w, h)
+  // 网格地面（在 stage 上，不在 worldContainer 中）
+  gridGfx = new Graphics()
+  createGrid(gridGfx, w, h)
   app.value.stage.addChild(gridGfx)
+
+  // 世界容器（所有游戏对象在此之下，通过摄像机偏移实现滚动）
+  worldContainer = new Container()
+  app.value.stage.addChild(worldContainer)
 
   // 敌人层
   enemyLayer = new Container()
-  app.value.stage.addChild(enemyLayer)
+  worldContainer.addChild(enemyLayer)
 
   // 发射物层
   projectileLayer = new Container()
-  app.value.stage.addChild(projectileLayer)
+  worldContainer.addChild(projectileLayer)
 
-  // 玩家（顶层）
-  player = createPlayer(w / 2, h / 2)
-  app.value.stage.addChild(player.gfx)
+  // 玩家
+  player = createPlayer(0, 0)
+  worldContainer.addChild(player.gfx)
+
+  // 摄像机
+  camera = createCamera()
 
   // 敌人生成器
   enemySpawner = createEnemySpawner()
@@ -87,30 +99,37 @@ function buildGame(): void {
 
 // ── 游戏循环 ──────────────────────────────────────────────────
 function gameLoop(): void {
-  if (!app.value || !player || !enemySpawner || !projectileMgr) return
+  if (!app.value || !player || !camera || !worldContainer || !gridGfx) return
+  if (!enemySpawner || !projectileMgr) return
   if (!enemyLayer || !projectileLayer) return
 
-  // dt 以秒为单位
   const dt = app.value.ticker.deltaMS / 1000
-  const w = app.value.screen.width
-  const h = app.value.screen.height
+  const sw = app.value.screen.width
+  const sh = app.value.screen.height
 
-  // 更新玩家
-  updatePlayer(player, input, dt, w, h)
+  // 1. 更新玩家（世界空间，无边界）
+  updatePlayer(player, input, dt)
 
-  // 更新敌人
-  updateEnemySpawner(enemySpawner, dt, player.x, player.y, w, h, enemyLayer)
+  // 2. 更新摄像机 → 计算 worldContainer 偏移
+  const { worldX, worldY } = updateCamera(camera, player.x, player.y, sw, sh)
+  worldContainer.x = worldX
+  worldContainer.y = worldY
 
-  // 更新发射物
+  // 3. 同步网格取模偏移
+  syncGrid(gridGfx, camera.x, camera.y)
+
+  // 4. 更新敌人
+  updateEnemySpawner(enemySpawner, dt, player.x, player.y, enemyLayer)
+
+  // 5. 更新发射物
   updateProjectileManager(
     projectileMgr, dt,
     player.x, player.y,
     enemySpawner.enemies,
-    w, h,
     projectileLayer,
   )
 
-  // 清理死亡实体
+  // 6. 清理死亡实体
   cleanupProjectiles(projectileMgr, projectileLayer)
   cleanupEnemies(enemySpawner, enemyLayer)
 }

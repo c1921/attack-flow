@@ -39,8 +39,6 @@ export function updatePlayer(
   player: Player,
   input: InputState,
   dt: number,
-  boundsW: number,
-  boundsH: number,
 ): void {
   let dx = 0
   let dy = 0
@@ -62,15 +60,6 @@ export function updatePlayer(
   player.x += dx * player.speed * dt
   player.y += dy * player.speed * dt
 
-  // 边界限制（留边距）
-  const m = 20
-  player.x = clamp(player.x, m, boundsW - m)
-  player.y = clamp(player.y, m, boundsH - m)
-
   player.gfx.x = player.x
   player.gfx.y = player.y
-}
-
-function clamp(v: number, min: number, max: number): number {
-  return v < min ? min : v > max ? max : v
 }

@@ -26,6 +26,8 @@ export interface ProjectileManager {
 const PROJECTILE_SPEED = 420
 const PROJECTILE_RADIUS = 4
 const PROJECTILE_COLOR = 0x44ddff
+/** 发射物飞行超过此距离（离玩家）则销毁 */
+const MAX_FLIGHT_DISTANCE = 800
 
 /**
  * 创建发射物管理器。
@@ -87,8 +89,6 @@ export function updateProjectileManager(
   playerX: number,
   playerY: number,
   enemies: Enemy[],
-  boundsW: number,
-  boundsH: number,
   projectileLayer: Container,
 ): void {
   // 冷却计时
@@ -134,13 +134,10 @@ export function updateProjectileManager(
     proj.gfx.x = proj.x
     proj.gfx.y = proj.y
 
-    // 出界销毁
-    if (
-      proj.x < -20 ||
-      proj.x > boundsW + 20 ||
-      proj.y < -20 ||
-      proj.y > boundsH + 20
-    ) {
+    // 飞行距离超过阈值则销毁
+    const dxFromPlayer = proj.x - playerX
+    const dyFromPlayer = proj.y - playerY
+    if (dxFromPlayer * dxFromPlayer + dyFromPlayer * dyFromPlayer > MAX_FLIGHT_DISTANCE * MAX_FLIGHT_DISTANCE) {
       proj.active = false
       continue
     }
