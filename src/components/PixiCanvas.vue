@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
-import { Container, Graphics } from 'pixi.js'
+import { Container, Graphics, Text } from 'pixi.js'
 import { usePixiApp } from '@/composables/usePixiApp'
 import { createGrid, syncGrid } from '@/game/Grid'
 import { createCamera, updateCamera } from '@/game/Camera'
@@ -37,6 +37,9 @@ let projectileMgr: ProjectileManager | null = null
 // 图层（在 worldContainer 内）
 let enemyLayer: Container | null = null
 let projectileLayer: Container | null = null
+
+// 玩家坐标标签（在三角下方显示）
+let playerLabel: Text | null = null
 
 // 键盘输入
 const input: InputState = { up: false, down: false, left: false, right: false }
@@ -87,6 +90,20 @@ function buildGame(): void {
   player = createPlayer(0, 0)
   worldContainer.addChild(player.gfx)
 
+  // 坐标标签（在三角下方）
+  playerLabel = new Text({
+    text: '(0, 0)',
+    style: {
+      fontFamily: 'monospace',
+      fontSize: 12,
+      fill: 0xffffff,
+      align: 'center',
+      stroke: { color: 0x000000, width: 3 },
+    },
+  })
+  playerLabel.anchor.set(0.5, 0)
+  worldContainer.addChild(playerLabel)
+
   // 摄像机
   camera = createCamera()
 
@@ -129,7 +146,16 @@ function gameLoop(): void {
     projectileLayer,
   )
 
-  // 6. 清理死亡实体
+  // 6. 更新坐标标签（在三角下方 24px 处）
+  if (playerLabel) {
+    const px = Math.round(player.x)
+    const py = Math.round(player.y)
+    playerLabel.text = `(${px}, ${py})`
+    playerLabel.x = player.x
+    playerLabel.y = player.y + 24
+  }
+
+  // 7. 清理死亡实体
   cleanupProjectiles(projectileMgr, projectileLayer)
   cleanupEnemies(enemySpawner, enemyLayer)
 }
