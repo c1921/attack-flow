@@ -11,6 +11,9 @@ import {
   ContextMenuTrigger,
 } from 'reka-ui'
 import { NODE_TYPE_COLORS } from '../constants/colors'
+import { NODE_PRESETS } from '../constants/nodes'
+
+defineProps<{ disabled?: boolean }>()
 
 /** 节点类型配置，用于子菜单 */
 interface NodeTypeOption {
@@ -19,11 +22,11 @@ interface NodeTypeOption {
   color: string
 }
 
-const nodeTypes: NodeTypeOption[] = [
-  { key: 'object-info', label: '物体信息', color: NODE_TYPE_COLORS['object-info'] },
-  { key: 'scene-info', label: '场景信息', color: NODE_TYPE_COLORS['scene-info'] },
-  { key: 'process-node', label: '光照处理', color: NODE_TYPE_COLORS['process-node'] },
-]
+const nodeTypes: NodeTypeOption[] = Object.entries(NODE_PRESETS).map(([key, preset]) => ({
+  key,
+  label: preset.label,
+  color: NODE_TYPE_COLORS[key]!,
+}))
 
 /** 右键点击时的屏幕坐标（viewport 像素） */
 const clickPosition = ref({ x: 0, y: 0 })
@@ -39,7 +42,7 @@ const emit = defineEmits<{
 
 <template>
   <ContextMenuRoot>
-    <ContextMenuTrigger asChild @contextmenu="capturePosition">
+    <ContextMenuTrigger asChild :disabled="disabled" @contextmenu="capturePosition">
       <slot />
     </ContextMenuTrigger>
 

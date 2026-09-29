@@ -1,48 +1,60 @@
-import type { PortItem } from '../components/BaseNode.vue'
+import type { Node } from '@vue-flow/core'
 
-/** 每种节点类型的完整配置 */
-export interface NodePreset {
-  /** BaseNode 的 node-type 属性（A/B/C…） */
-  nodeType: string
-  /** 显示标题 */
-  label: string
-  /** 端口列表 */
-  items: PortItem[]
+export type AttackType = 'basic-attack' | 'multi-attack' | 'extra-damage' | 'wait'
+export type AttackNode = Node<AttackNodeData> & { data: AttackNodeData }
+
+export interface AttackConfig {
+  duration: number
+  damage: number
+  hits: number
 }
 
-export const NODE_PRESETS: Record<string, NodePreset> = {
-  'object-info': {
-    nodeType: 'A',
-    label: '物体信息',
-    items: [
-      { label: '位置', portType: 1 },
-      { label: '颜色', portType: 2 },
-      { label: 'Alpha', portType: 3 },
-      { label: '物体编号', portType: 3 },
-      { label: '材质编号', portType: 3 },
-    ],
+export interface AttackNodeData extends AttackConfig {
+  label: string
+  state?: 'idle' | 'running' | 'completed'
+  progress?: number
+  locked?: boolean
+}
+
+export interface NodePreset {
+  label: string
+  icon: string
+  color: string
+  description: string
+  defaults: AttackConfig
+}
+
+export const NODE_PRESETS: Record<AttackType, NodePreset> = {
+  'basic-attack': {
+    label: '基础攻击',
+    icon: '↗',
+    color: '#e9b86c',
+    description: '蓄力结束后，造成一次基础伤害。',
+    defaults: { duration: 1, damage: 100, hits: 1 },
   },
-  'scene-info': {
-    nodeType: 'B',
-    label: '场景信息',
-    items: [
-      { label: '场景名称', portType: 4 },
-      { label: '光照类型', portType: 3 },
-      { label: '环境光色', portType: 3 },
-      { label: '阴影', portType: 1 },
-      { label: '雾效强度', portType: 1 },
-    ],
+  'multi-attack': {
+    label: '多重攻击',
+    icon: '»',
+    color: '#a89afa',
+    description: '在持续时间内，等间隔进行多次攻击。',
+    defaults: { duration: 1.5, damage: 60, hits: 3 },
   },
-  'process-node': {
-    nodeType: 'C',
-    label: '光照处理',
-    items: [
-      { label: '光照类型', portType: 3 },
-      { label: '环境光色', portType: 3 },
-      { label: '阴影', portType: 1 },
-      { label: '雾效强度', portType: 1 },
-      { label: '最终光照', portType: 2, handleType: 'source' },
-      { label: '阴影贴图', portType: 4, handleType: 'source' },
-    ],
+  'extra-damage': {
+    label: '额外伤害',
+    icon: '✧',
+    color: '#77d8bc',
+    description: '短暂延迟后，追加一次独立伤害。',
+    defaults: { duration: 0.4, damage: 40, hits: 1 },
   },
+  wait: {
+    label: '等待',
+    icon: '◷',
+    color: '#8aa6c4',
+    description: '等待一段时间，再执行下一个节点。',
+    defaults: { duration: 0.6, damage: 0, hits: 1 },
+  },
+}
+
+export function isAttackType(type: string | undefined): type is AttackType {
+  return type !== undefined && Object.hasOwn(NODE_PRESETS, type)
 }

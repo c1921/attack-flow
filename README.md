@@ -1,48 +1,66 @@
-# attack-flow
+# Attack Flow · 攻击流实验室
 
-This template should help get you started developing with Vue 3 in Vite.
+基于 Vue 3、TypeScript 和 Vue Flow 的可执行攻击工作流。通过连接节点编排连招，在训练木桩上观察节点耗时、实时伤害和循环效果。
 
-## Recommended IDE Setup
+## 开始使用
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+要求 Node.js `^22.18.0 || >=24.12.0` 和 pnpm。
 
 ```sh
 pnpm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 pnpm dev
 ```
 
-### Type-Check, Compile and Minify for Production
+打开终端显示的地址，点击「运行攻击流」即可运行预置示例。
+
+## 节点
+
+| 节点 | 默认耗时 | 默认效果 |
+| --- | --- | --- |
+| 基础攻击 | 1.0 秒 | 在节点结束时造成 100 点伤害 |
+| 多重攻击 | 1.5 秒 | 每 0.5 秒造成 60 点伤害，共 3 次 |
+| 额外伤害 | 0.4 秒 | 在节点结束时独立追加 40 点伤害 |
+| 等待 | 0.6 秒 | 不造成伤害，结束后继续下一节点 |
+
+默认示例每轮 **3.5 秒、320 点伤害、5 次命中**，完成后自动开始下一轮。额外伤害是独立的一次命中，不会修改其他节点的伤害。
+
+## 编排与运行
+
+- 点击左侧节点库，或在画布空白处右键添加节点。
+- 从节点右侧输出端口拖到下一节点左侧输入端口。
+- 所有节点需连接成一条链，每个节点最多一个输入和一个输出。执行顺序由连线决定。
+- 没有输入连线的节点是起点。末尾自动回到起点，无需手动连接首尾；自连接、分支、合流和环路会被阻止或在运行前提示。
+- 点击节点可编辑耗时、单次伤害与多重攻击次数。耗时范围为 0.1–30 秒，伤害为 0–100000，次数为 1–20。
+- 选中节点或连线后，按 Delete / Backspace 删除；也可使用参数面板的「删除节点」。
+- 运行中的节点显示外框描边和进度条；已完成节点显示勾选状态。
+- 支持暂停、继续、0.5× / 1× / 2× / 4× 倍速。暂停保留当前节点进度。
+- 运行及暂停期间锁定结构和参数编辑，允许拖动节点和查看参数；点击「重置」清空执行状态与统计后可继续编辑。
+
+## 时间与伤害
+
+- 游戏时间按实际经过时间乘以倍速推进，暂停和后台标签页不推进。
+- 多重攻击按节点耗时等间隔结算；长帧跨过多次命中或多个节点时仍会依次结算。
+- 木桩无限生命、无护甲，伤害按节点配置直接累计。
+- 平均 DPS = 累计伤害 / 游戏时间，包含等待耗时。
+- 训练场显示伤害飘字、命中次数、最近伤害与最近 60 次命中记录。日志截断不影响累计统计。
+- 时间线展示每个节点在单轮中的耗时比例，以及单轮总耗时、总伤害。
+- 当前编排保存在页面内存中，刷新后恢复默认示例。
+
+## 检查
 
 ```sh
+pnpm test
 pnpm build
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
 pnpm lint
 ```
+
+执行引擎测试使用 Node.js 内置测试框架，无需额外测试依赖，覆盖按连线排序、命中时机、跨节点及跨轮时间推进、帧率一致性、参数与图结构校验。
+
+## 代码结构
+
+- `src/engine/workflow.ts`：独立的流程校验与时间推进引擎。
+- `src/composables/useWorkflow.ts`：动画帧调度、暂停恢复、倍速和响应式执行状态。
+- `src/constants/nodes.ts`：节点类型、默认参数与视觉配置。
+- `src/components/BaseNode.vue`：端口、伤害信息和节点运行状态。
+- `src/App.vue`：编排画布、参数编辑、时间线与战斗面板。
+- `tests/workflow.test.mjs`：执行引擎回归测试。

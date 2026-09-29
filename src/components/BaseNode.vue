@@ -1,158 +1,127 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Handle, Position } from '@vue-flow/core'
-import type { NodeProps } from '@vue-flow/core'
-import { NODE_COLORS, nodeColorAsCssVar } from '../constants/colors'
+import { Handle, Position, type NodeProps } from '@vue-flow/core'
+import { NODE_PRESETS, type AttackNodeData, type AttackType } from '../constants/nodes'
 
-/** 节点类型 → 头部背景色（CSS 变量引用，由共享常量生成） */
-const NODE_HEADER_COLORS: Record<string, string> = Object.fromEntries(
-  Object.keys(NODE_COLORS).map((key) => [key, nodeColorAsCssVar(key)]),
-)
-
-/** 端口类型 → 端口颜色（CSS 变量，定义在 main.css @theme 中） */
-const PORT_COLORS: Record<number, string> = {
-  1: 'var(--color-port-1)',
-  2: 'var(--color-port-2)',
-  3: 'var(--color-port-3)',
-  4: 'var(--color-port-4)',
-}
-
-export interface PortItem {
-  label: string
-  /** 端口类型，对应 PORT_COLORS 中的颜色 */
-  portType: number
-  /** 手柄类型，默认 'target' */
-  handleType?: 'source' | 'target'
-}
-
-const props = defineProps<
-  NodeProps & {
-    /** 节点类型，对应 NODE_HEADER_COLORS 中的颜色 */
-    nodeType: string
-    /** 标题，默认取 data.label */
-    label?: string
-    /** 列表项 */
-    items?: PortItem[]
-  }
->()
-
-const resolvedLabel = props.label ?? (props.data?.label as string | undefined) ?? ''
-
-const headerColor = computed(() => NODE_HEADER_COLORS[props.nodeType] ?? '#666666')
-
-const resolvedItems = computed(() =>
-  (props.items ?? []).map(item => ({
-    ...item,
-    color: PORT_COLORS[item.portType] ?? '#888888',
-  })),
-)
-
-const bodyBg = 'var(--color-node-bg)'
-const borderColor = 'var(--color-node-border)'
+const props = defineProps<NodeProps<AttackNodeData>>()
+const preset = computed(() => NODE_PRESETS[props.type as AttackType])
+const progress = computed(() => Math.round((props.data.progress ?? 0) * 100))
 </script>
 
 <template>
-  <div class="node-root">
-    <!-- 端口和端口名 — 在容器外部，不受 overflow-hidden 裁切影响 -->
-    <!-- 左侧：输入（target）手柄，右侧：输出（source）手柄 -->
-    <div v-for="(item, index) in resolvedItems" :key="'port-' + index" class="port-row"
-      :class="item.handleType === 'source' ? 'port-right' : 'port-left'" :style="{ top: 44 + index * 22 + 'px' }">
-      <template v-if="item.handleType === 'source'">
-        <span class="port-label port-label-right">{{ item.label }}</span>
-        <Handle :id="item.label" type="source" :position="Position.Right" class="handle"
-          :style="{ backgroundColor: item.color }" :data-port-type="item.portType" />
-      </template>
-      <template v-else>
-        <Handle :id="item.label" type="target" :position="Position.Left" class="handle"
-          :style="{ backgroundColor: item.color }" :data-port-type="item.portType" />
-        <span class="port-label port-label-left">{{ item.label }}</span>
-      </template>
+  <div
+    class="attack-node"
+    :class="[data.state, { selected }]"
+    :style="{ '--node-accent': preset.color }"
+  >
+    <Handle id="in" type="target" :position="Position.Left" :connectable="!data.locked" />
+    <div class="node-heading">
+      <span class="node-icon">{{ preset.icon }}</span>
+      <span>{{ data.label }}</span>
+      <span class="node-indicator">{{ data.state === 'completed' ? '✓' : '•' }}</span>
     </div>
-
-    <!-- 容器：外轮廓 + 灰色背景，圆角，通过 overflow-hidden 裁切头部 -->
-    <div class="node-body" :style="{ backgroundColor: bodyBg, borderColor }">
-      <!-- 头部 -->
-      <div class="node-header" :style="{ backgroundColor: headerColor }">
-        <span>{{ resolvedLabel }}</span>
+    <div class="node-details">
+      <div class="node-damage">
+        <template v-if="type !== 'wait'">
+          <strong>{{ data.damage }}</strong
+          ><span>{{ type === 'multi-attack' ? `× ${data.hits} 次` : '伤害' }}</span>
+        </template>
+        <template v-else
+          ><strong>{{ data.duration }}</strong
+          ><span>秒冷却</span></template
+        >
       </div>
-      <!-- 内容项（不含手柄） -->
-      <div class="node-content">
-        <div v-for="(item, index) in resolvedItems" :key="index" class="node-placeholder"></div>
+      <div class="node-meta">
+        <span>◷ {{ data.duration.toFixed(1) }}s</span
+        ><span>{{
+          data.state === 'running'
+            ? `${progress}%`
+            : data.state === 'completed'
+              ? '已完成'
+              : '待执行'
+        }}</span>
       </div>
     </div>
+    <div class="node-progress"><div :style="{ width: `${progress}%` }" /></div>
+    <Handle id="out" type="source" :position="Position.Right" :connectable="!data.locked" />
   </div>
 </template>
 
 <style scoped>
-.node-root {
+.attack-node {
+  width: 208px;
+  background: #20232c;
+  border: 1px solid #3b3e4a;
+  border-radius: 12px;
   position: relative;
-  min-width: 140px;
-  user-select: none;
+  color: #ecedf3;
+  box-shadow: 0 6px 18px #0003;
 }
-
-.port-row {
-  position: absolute;
-  z-index: 10;
+.attack-node.selected {
+  border-color: var(--node-accent);
+}
+.attack-node.running {
+  border-color: var(--node-accent);
+  outline: 2px solid var(--node-accent);
+  outline-offset: 4px;
+  box-shadow: 0 0 30px color-mix(in srgb, var(--node-accent) 22%, transparent);
+}
+.node-heading {
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.port-left {
-  left: 0;
-}
-
-.port-right {
-  right: 0;
-}
-
-.port-label {
-  color: #e5e7eb;
+  gap: 10px;
+  padding: 13px 15px;
+  border-bottom: 1px solid #ffffff0c;
   font-size: 13px;
-  white-space: nowrap;
-  user-select: none;
+  font-weight: 600;
 }
-
-.port-label-right {
-  margin-right: 8px;
+.node-icon {
+  color: var(--node-accent);
+  font-size: 22px;
+  line-height: 1;
 }
-
-.port-label-left {
-  margin-left: 8px;
+.node-indicator {
+  margin-left: auto;
+  color: var(--node-accent);
 }
-
-.handle {
-  width: 12px;
-  height: 12px;
-  min-width: 12px;
-  border-radius: 9999px;
-  border: 1px solid;
+.node-details {
+  padding: 14px 15px 12px;
 }
-
-.node-body {
-  border-radius: 8px;
+.node-damage {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.node-damage strong {
+  font-size: 26px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.node-damage span,
+.node-meta {
+  color: #959aaa;
+  font-size: 11px;
+}
+.node-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 13px;
+}
+.node-progress {
+  height: 3px;
   overflow: hidden;
-  border: 1px solid;
+  border-radius: 0 0 12px 12px;
 }
-
-.node-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  color: #fff;
-  font-size: 14px;
-  line-height: 20px;
+.node-progress div {
+  height: 100%;
+  background: var(--node-accent);
 }
-
-.node-content {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 12px;
-}
-
-.node-placeholder {
-  height: 16px;
+.attack-node :deep(.vue-flow__handle) {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 3px solid #20232c;
+  background: var(--node-accent);
+  box-shadow: 0 0 0 1px var(--node-accent);
 }
 </style>
