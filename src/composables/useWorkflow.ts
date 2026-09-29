@@ -1,7 +1,7 @@
 import { computed, onUnmounted, ref, type Ref } from 'vue'
 import type { Edge } from '@vue-flow/core'
 import type { AttackNode } from '../constants/nodes'
-import { WorkflowRunner, type DamageEvent } from '../engine/workflow'
+import { WorkflowRunner, type WorkflowEvent, type DamageEvent } from '../engine/workflow'
 
 export function useWorkflow(nodes: Ref<AttackNode[]>, edges: Ref<Edge[]>) {
   const status = ref<'idle' | 'running' | 'paused'>('idle')
@@ -10,7 +10,11 @@ export function useWorkflow(nodes: Ref<AttackNode[]>, edges: Ref<Edge[]>) {
   const totalDamage = ref(0)
   const hitCount = ref(0)
   const completedCycles = ref(0)
-  const events = ref<DamageEvent[]>([])
+  const events = ref<WorkflowEvent[]>([])
+  const lastDamage = ref<DamageEvent>()
+  const critChance = ref(0)
+  const criticalReady = ref(false)
+  const criticalHits = ref(0)
   const error = ref('')
   const activeId = ref('')
   const progress = ref(0)
@@ -28,11 +32,17 @@ export function useWorkflow(nodes: Ref<AttackNode[]>, edges: Ref<Edge[]>) {
     completedCycles.value = runner.completedCycles
     activeId.value = runner.activeNode.id
     progress.value = runner.progress
+    critChance.value = runner.critChance
+    criticalReady.value = runner.criticalReady
+    criticalHits.value = runner.criticalHits
     const finished = new Set(runner.sequence.slice(0, runner.index).map((node) => node.id))
     for (const node of nodes.value) {
       node.data = {
         ...node.data,
         locked: true,
+        critChance: runner.critChance,
+        criticalReady: runner.criticalReady,
+        critResult: runner.criticalResults[node.id],
         state:
           node.id === activeId.value ? 'running' : finished.has(node.id) ? 'completed' : 'idle',
         progress: node.id === activeId.value ? progress.value : finished.has(node.id) ? 1 : 0,
@@ -48,7 +58,12 @@ export function useWorkflow(nodes: Ref<AttackNode[]>, edges: Ref<Edge[]>) {
     lastTime = time
     if (!document.hidden) {
       const hits = runner.advance(delta * speed.value)
-      if (hits.length) events.value = [...hits.reverse(), ...events.value].slice(0, 60)
+      if (hits.length) {
+        hits.reverse()
+        const latest = hits.find((event): event is DamageEvent => event.kind === 'damage')
+        if (latest) lastDamage.value = latest
+        events.value = [...hits, ...events.value].slice(0, 60)
+      }
       sync()
     }
     frame = requestAnimationFrame(tick)
@@ -85,8 +100,19 @@ export function useWorkflow(nodes: Ref<AttackNode[]>, edges: Ref<Edge[]>) {
     elapsed.value = totalDamage.value = hitCount.value = completedCycles.value = progress.value = 0
     activeId.value = error.value = ''
     events.value = []
+    lastDamage.value = undefined
+    critChance.value = criticalHits.value = 0
+    criticalReady.value = false
     for (const node of nodes.value)
-      node.data = { ...node.data, state: 'idle', progress: 0, locked: false }
+      node.data = {
+        ...node.data,
+        state: 'idle',
+        progress: 0,
+        locked: false,
+        critChance: 0,
+        criticalReady: false,
+        critResult: undefined,
+      }
     for (const edge of edges.value) edge.animated = false
   }
 
@@ -107,6 +133,10 @@ export function useWorkflow(nodes: Ref<AttackNode[]>, edges: Ref<Edge[]>) {
     hitCount,
     completedCycles,
     events,
+    lastDamage,
+    critChance,
+    criticalReady,
+    criticalHits,
     error,
     activeId,
     progress,

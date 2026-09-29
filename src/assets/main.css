@@ -284,6 +284,66 @@ h2 {
   font-size: 10px;
   margin-top: 12px;
 }
+.node-rule-note {
+  color: #c1a5ae;
+  font-size: 10px;
+  line-height: 1.8;
+  margin-top: 14px;
+}
+.workflow-rules {
+  flex-shrink: 0;
+  padding: 12px 24px;
+  background: #1b1d25;
+  border-top: 1px solid #30323d;
+  color: #929bad;
+  font-size: 10px;
+}
+.workflow-rules summary {
+  cursor: pointer;
+  color: #c4b2d7;
+}
+.workflow-rules ul {
+  padding-left: 17px;
+  margin-bottom: 0;
+  line-height: 1.8;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.workflow-rules li + li {
+  margin-top: 5px;
+}
+.critical-summary {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 13px 16px;
+  background: #30232c;
+  border: 1px solid #543740;
+  border-radius: 8px;
+}
+.critical-summary span {
+  display: block;
+  color: #b48e9d;
+  font-size: 10px;
+}
+.critical-summary strong {
+  display: block;
+  margin-top: 5px;
+  color: #f18d9c;
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.critical-summary p {
+  grid-column: 1 / -1;
+  color: #a68a97;
+  font-size: 9px;
+}
+.critical-summary .ready {
+  color: #ffd18a;
+}
 .library-footer {
   margin-top: auto;
   padding-top: 28px;
@@ -611,6 +671,7 @@ h2 {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow-y: auto;
 }
 .section-heading .practice-badge {
   font-size: 9px;
@@ -621,7 +682,7 @@ h2 {
   border-radius: 4px;
 }
 .target-stage {
-  height: 245px;
+  height: 215px;
   flex-shrink: 0;
   position: relative;
   display: flex;
@@ -912,12 +973,13 @@ h2 {
   .target-health {
     grid-column: 1;
   }
-  .hit-summary {
+  .hit-summary,
+  .critical-summary {
     grid-column: 1;
   }
   .combat-log {
     grid-column: 2;
-    grid-row: 1 / 5;
+    grid-row: 1 / 6;
     max-height: 360px;
     margin-top: 0;
   }
@@ -996,6 +1058,11 @@ h2 {
   }
   .timeline-footer {
     font-size: 8px;
+  }
+  .timeline-segment {
+    min-width: 40px;
+    padding-left: 5px;
+    padding-right: 5px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -13,7 +13,7 @@ import {
 import { NODE_TYPE_COLORS } from '../constants/colors'
 import { NODE_PRESETS } from '../constants/nodes'
 
-defineProps<{ disabled?: boolean }>()
+defineProps<{ disabled?: boolean; hasOutput?: boolean }>()
 
 /** 节点类型配置，用于子菜单 */
 interface NodeTypeOption {
@@ -60,6 +60,7 @@ const emit = defineEmits<{
                 v-for="item in nodeTypes"
                 :key="item.key"
                 class="context-menu-item"
+                :disabled="item.key === 'output' && hasOutput"
                 @select="emit('add-node', item.key, clickPosition)"
               >
                 <span class="color-dot" :style="{ backgroundColor: item.color }" />

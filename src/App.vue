@@ -18,7 +18,7 @@ import DynamicNode from './components/DynamicNode.vue'
 import CanvasContextMenu from './components/CanvasContextMenu.vue'
 import { NODE_PRESETS, isAttackType, type AttackNode, type AttackType } from './constants/nodes'
 import { NODE_TYPE_COLORS } from './constants/colors'
-import { compileWorkflow } from './engine/workflow'
+import { compileWorkflow, connectionError, isDamageType, type DamageEvent } from './engine/workflow'
 import { useWorkflow } from './composables/useWorkflow'
 
 const { screenToFlowCoordinate, fitView } = useVueFlow()
@@ -38,7 +38,7 @@ onUnmounted(() => {
   resizeObserver.disconnect()
   cancelAnimationFrame(resizeFrame)
 })
-let nextId = 5
+let nextId = 7
 
 function createNode(id: string, type: AttackType, position: { x: number; y: number }): AttackNode {
   const preset = NODE_PRESETS[type]
@@ -46,16 +46,19 @@ function createNode(id: string, type: AttackType, position: { x: number; y: numb
     id,
     type,
     position,
+    deletable: type !== 'output',
     data: { label: preset.label, ...preset.defaults, state: 'idle', progress: 0 },
   }
 }
 
 const nodes = ref() as Ref<AttackNode[]>
 nodes.value = [
-  createNode('1', 'basic-attack', { x: 50, y: 100 }),
-  createNode('2', 'multi-attack', { x: 340, y: 100 }),
-  createNode('3', 'extra-damage', { x: 630, y: 100 }),
-  createNode('4', 'wait', { x: 630, y: 350 }),
+  createNode('5', 'critical', { x: 50, y: 100 }),
+  createNode('1', 'basic-attack', { x: 340, y: 100 }),
+  createNode('2', 'multi-attack', { x: 630, y: 100 }),
+  createNode('3', 'extra-damage', { x: 50, y: 350 }),
+  createNode('4', 'wait', { x: 340, y: 350 }),
+  createNode('6', 'output', { x: 630, y: 350 }),
 ]
 
 function createEdge(source: string, target: string): Edge {
@@ -74,7 +77,13 @@ function createEdge(source: string, target: string): Edge {
 }
 
 const edges = ref() as Ref<Edge[]>
-edges.value = [createEdge('1', '2'), createEdge('2', '3'), createEdge('3', '4')]
+edges.value = [
+  createEdge('5', '1'),
+  createEdge('1', '2'),
+  createEdge('2', '3'),
+  createEdge('3', '4'),
+  createEdge('4', '6'),
+]
 const {
   status,
   speed,
@@ -83,6 +92,10 @@ const {
   hitCount,
   completedCycles,
   events,
+  lastDamage: lastHit,
+  critChance,
+  criticalReady,
+  criticalHits,
   error,
   activeId,
   progress,
@@ -92,7 +105,8 @@ const {
   pause,
   reset,
 } = useWorkflow(nodes, edges)
-const selectedId = ref('1')
+const selectedId = ref('5')
+const hasOutput = computed(() => nodes.value.some((node) => node.type === 'output'))
 const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedId.value))
 const selectedPreset = computed(() =>
   selectedNode.value && isAttackType(selectedNode.value.type)
@@ -114,16 +128,18 @@ const cycleDamage = computed(() =>
   sequence.value.reduce(
     (total, node) =>
       total +
-      (node.type === 'wait'
-        ? 0
-        : node.data.damage * (node.type === 'multi-attack' ? node.data.hits : 1)),
+      (isDamageType(node.type)
+        ? node.data.damage * (node.type === 'multi-attack' ? node.data.hits : 1)
+        : 0),
     0,
   ),
 )
-const floatingHits = computed(() =>
-  events.value.filter((event) => elapsed.value - event.time < 1.1).slice(0, 5),
+const damageEvents = computed(() =>
+  events.value.filter((event): event is DamageEvent => event.kind === 'damage'),
 )
-const lastHit = computed(() => events.value[0])
+const floatingHits = computed(() =>
+  damageEvents.value.filter((event) => elapsed.value - event.time < 1.1).slice(0, 5),
+)
 const recentHit = computed(() => lastHit.value && elapsed.value - lastHit.value.time < 0.18)
 const statusLabel = computed(
   () => ({ idle: '准备就绪', running: '运行中', paused: '已暂停' })[status.value],
@@ -133,30 +149,18 @@ function onConnect(connection: Connection) {
   if (locked.value) return
   const { source, target, sourceHandle, targetHandle } = connection
   if (sourceHandle !== 'out' || targetHandle !== 'in') return
-  if (source === target) {
-    error.value = '不能连接节点自身；攻击流会自动循环。'
-    return
-  }
-  if (edges.value.some((edge) => edge.source === source || edge.target === target)) {
-    error.value = '每个节点最多一个输入和一个输出，请先删除原连线。'
-    return
-  }
-  const visited = new Set<string>()
-  let current: string | undefined = target
-  while (current && !visited.has(current)) {
-    if (current === source) {
-      error.value = '无需连接首尾：攻击流完成后会自动循环。'
-      return
-    }
-    visited.add(current)
-    current = edges.value.find((edge) => edge.source === current)?.target
-  }
+  error.value = connectionError(nodes.value, edges.value, source, target)
+  if (error.value) return
   edges.value.push(createEdge(source, target))
   error.value = ''
 }
 
 async function addNode(type: string, screenPos?: { x: number; y: number }) {
   if (locked.value || !isAttackType(type)) return
+  if (type === 'output' && hasOutput.value) {
+    error.value = '工作流只能有一个输出节点。'
+    return
+  }
   const rect = canvas.value?.getBoundingClientRect()
   const position = screenPos
     ? screenToFlowCoordinate(screenPos)
@@ -188,7 +192,7 @@ function updateConfig(field: 'duration' | 'damage' | 'hits', event: Event) {
 }
 
 function removeSelected() {
-  if (locked.value || !selectedNode.value) return
+  if (locked.value || !selectedNode.value || selectedNode.value.type === 'output') return
   const id = selectedId.value
   nodes.value = nodes.value.filter((node) => node.id !== id)
   edges.value = edges.value.filter((edge) => edge.source !== id && edge.target !== id)
@@ -226,7 +230,7 @@ function number(value: number) {
       <aside class="library-panel">
         <div class="section-heading">
           <h2>节点库</h2>
-          <span>04</span>
+          <span>{{ Object.keys(NODE_PRESETS).length.toString().padStart(2, '0') }}</span>
         </div>
         <p class="muted library-hint">点击添加，连接你的攻击节奏。</p>
         <div class="node-library">
@@ -234,7 +238,7 @@ function number(value: number) {
             v-for="(preset, type) in NODE_PRESETS"
             :key="type"
             class="palette-node"
-            :disabled="locked"
+            :disabled="locked || (type === 'output' && hasOutput)"
             :style="{ '--accent': preset.color }"
             @click="addNode(type)"
           >
@@ -244,7 +248,15 @@ function number(value: number) {
               ><small
                 >{{ preset.defaults.duration.toFixed(1) }}s ·
                 {{
-                  type === 'wait' ? '节奏控制' : type === 'multi-attack' ? '连续命中' : '伤害输出'
+                  type === 'output'
+                    ? '唯一终点'
+                    : type === 'critical'
+                      ? '概率判定'
+                      : type === 'wait'
+                        ? '节奏控制'
+                        : type === 'multi-attack'
+                          ? '连续命中'
+                          : '伤害输出'
                 }}</small
               ></span
             >
@@ -273,7 +285,7 @@ function number(value: number) {
               :disabled="locked"
               @change="updateConfig('duration', $event)"
             />
-            <template v-if="selectedNode.type !== 'wait'">
+            <template v-if="isDamageType(selectedNode.type)">
               <label class="field-label" for="damage">单次伤害 <span>DMG</span></label>
               <input
                 id="damage"
@@ -299,7 +311,17 @@ function number(value: number) {
                 @change="updateConfig('hits', $event)"
               />
             </template>
-            <button class="delete-button" :disabled="locked" @click="removeSelected">
+            <p v-if="selectedNode.type === 'critical'" class="node-rule-note">
+              初始 0%，跨轮累加；成功后下一次命中 ×2，暴击效果不叠加。
+            </p>
+            <p v-if="selectedNode.type === 'output'" class="node-rule-note">
+              保留唯一输出节点；所有分支执行完成后在此结束本轮。
+            </p>
+            <button
+              class="delete-button"
+              :disabled="locked || selectedNode.type === 'output'"
+              @click="removeSelected"
+            >
               删除节点
             </button>
           </template>
@@ -364,7 +386,7 @@ function number(value: number) {
             <span class="live-dot" />{{ locked ? '执行预览' : '编排画布'
             }}<span class="auto-loop">∞ 自动循环</span>
           </div>
-          <CanvasContextMenu :disabled="locked" @add-node="addNode">
+          <CanvasContextMenu :disabled="locked" :has-output="hasOutput" @add-node="addNode">
             <VueFlow
               v-model:nodes="nodes"
               v-model:edges="edges"
@@ -425,18 +447,38 @@ function number(value: number) {
             </div>
             <span class="loop-symbol" title="结束后自动循环">↻</span>
           </div>
-          <p v-else class="muted">将所有节点连接成一条攻击链，即可预览执行时间线。</p>
+          <p v-else class="muted">将所有路径接入唯一输出节点，即可预览执行时间线。</p>
           <div class="timeline-footer">
             <span>{{
               activeNode
                 ? `${status === 'paused' ? '暂停于' : '正在执行'} · ${activeNode.data.label} ${Math.round(progress * 100)}%`
-                : '起点为没有输入连线的节点，末尾自动回到起点。'
+                : '所有路径汇入输出节点；输出完成后自动开始下一轮。'
             }}</span
             ><span
-              >单轮伤害 <b>{{ number(cycleDamage) }}</b></span
+              >基础单轮伤害 <b>{{ number(cycleDamage) }}</b></span
             >
           </div>
         </section>
+        <details class="workflow-rules">
+          <summary>工作流规则 · 唯一输出终点 · 暴击判定</summary>
+          <ul>
+            <li>必须且只能有一个输出节点。所有路径必须汇入它；输出节点没有输出端口，不可删除。</li>
+            <li>
+              支持分支和合流，按依赖顺序串行执行。多个节点同时就绪时按编号排序，每个节点每轮执行一次。
+            </li>
+            <li>
+              暴击率初始为 0%，所有暴击节点共享并跨轮保留。每次节点执行完成时判定，失败增加 5
+              个百分点，上限 100%；成功清零。
+            </li>
+            <li>
+              暴击成功后下一次非零伤害命中
+              ×2，随后消耗。等待、输出及零伤害不消耗；多重攻击仅一次命中翻倍。未消耗效果可跨轮保留，多次成功不叠加。
+            </li>
+            <li>
+              所有节点结束后执行输出节点，再开始新一轮。暂停保留暴击状态，重置清空暴击率与待触发效果。
+            </li>
+          </ul>
+        </details>
       </main>
 
       <aside class="battle-panel">
@@ -475,7 +517,7 @@ function number(value: number) {
               animationPlayState: status === 'paused' ? 'paused' : 'running',
             }"
           >
-            -{{ number(hit.damage) }}
+            {{ hit.critical ? '暴击 ' : '' }}-{{ number(hit.damage) }}
           </div>
           <div class="target-label"><strong>训练木桩</strong><span>无限生命 · 无护甲</span></div>
         </div>
@@ -495,10 +537,21 @@ function number(value: number) {
             }}</strong>
           </div>
         </div>
+        <div class="critical-summary">
+          <div>
+            <span>当前暴击率</span><strong data-testid="crit-chance">{{ critChance }}%</strong>
+          </div>
+          <div>
+            <span>暴击命中</span><strong data-testid="critical-hits">{{ criticalHits }}</strong>
+          </div>
+          <p data-testid="crit-ready" :class="{ ready: criticalReady }">
+            {{ criticalReady ? 'ϟ 暴击就绪 · 下一次命中 ×2' : '判定失败 +5% · 成功清零' }}
+          </p>
+        </div>
         <section class="combat-log">
           <div class="section-heading">
             <h2>战斗记录</h2>
-            <span>最近 60 次</span>
+            <span>最近 60 条</span>
           </div>
           <div v-if="!events.length" class="log-empty">
             <span>⌁</span>
@@ -511,10 +564,20 @@ function number(value: number) {
               <div>
                 <strong
                   >{{ event.label
-                  }}<small v-if="event.type === 'multi-attack'"> #{{ event.hit }}</small></strong
+                  }}<small v-if="event.kind === 'damage' && event.critical"> 暴击 ×2</small
+                  ><small v-if="event.type === 'multi-attack'"> #{{ event.hit }}</small
+                  ><small v-if="event.kind === 'critical'">
+                    {{ event.chanceBefore }}% → {{ event.chanceAfter }}%</small
+                  ></strong
                 ><span>{{ formatTime(event.time) }} · 第 {{ event.cycle }} 轮</span>
               </div>
-              <b :style="{ color: NODE_TYPE_COLORS[event.type] }">+{{ number(event.damage) }}</b>
+              <b :style="{ color: NODE_TYPE_COLORS[event.type] }">{{
+                event.kind === 'critical'
+                  ? event.success
+                    ? '成功 · ×2'
+                    : '未触发 +5%'
+                  : `+${number(event.damage)}`
+              }}</b>
             </li>
           </ol>
         </section>

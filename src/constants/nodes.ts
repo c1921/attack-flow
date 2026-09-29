@@ -1,6 +1,12 @@
 import type { Node } from '@vue-flow/core'
 
-export type AttackType = 'basic-attack' | 'multi-attack' | 'extra-damage' | 'wait'
+export type AttackType =
+  | 'basic-attack'
+  | 'multi-attack'
+  | 'extra-damage'
+  | 'wait'
+  | 'critical'
+  | 'output'
 export type AttackNode = Node<AttackNodeData> & { data: AttackNodeData }
 
 export interface AttackConfig {
@@ -14,6 +20,9 @@ export interface AttackNodeData extends AttackConfig {
   state?: 'idle' | 'running' | 'completed'
   progress?: number
   locked?: boolean
+  critChance?: number
+  criticalReady?: boolean
+  critResult?: 'success' | 'failure'
 }
 
 export interface NodePreset {
@@ -52,6 +61,20 @@ export const NODE_PRESETS: Record<AttackType, NodePreset> = {
     color: '#8aa6c4',
     description: '等待一段时间，再执行下一个节点。',
     defaults: { duration: 0.6, damage: 0, hits: 1 },
+  },
+  critical: {
+    label: '暴击',
+    icon: 'ϟ',
+    color: '#f18d9c',
+    description: '完成时按当前暴击率判定；成功清零，失败累加 5 个百分点，上限 100%。',
+    defaults: { duration: 0.3, damage: 0, hits: 1 },
+  },
+  output: {
+    label: '输出',
+    icon: '⇥',
+    color: '#c8d885',
+    description: '唯一终点，所有路径必须汇入此处。执行完成后开始下一轮。',
+    defaults: { duration: 0.2, damage: 0, hits: 1 },
   },
 }
 

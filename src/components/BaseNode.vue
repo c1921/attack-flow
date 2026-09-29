@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Handle, Position, type NodeProps } from '@vue-flow/core'
 import { NODE_PRESETS, type AttackNodeData, type AttackType } from '../constants/nodes'
+import { isDamageType } from '../engine/workflow'
 
 const props = defineProps<NodeProps<AttackNodeData>>()
 const preset = computed(() => NODE_PRESETS[props.type as AttackType])
@@ -22,10 +23,25 @@ const progress = computed(() => Math.round((props.data.progress ?? 0) * 100))
     </div>
     <div class="node-details">
       <div class="node-damage">
-        <template v-if="type !== 'wait'">
+        <template v-if="isDamageType(type)">
           <strong>{{ data.damage }}</strong
           ><span>{{ type === 'multi-attack' ? `× ${data.hits} 次` : '伤害' }}</span>
         </template>
+        <template v-else-if="type === 'critical'"
+          ><strong>{{ data.critChance ?? 0 }}%</strong
+          ><span>{{
+            data.critResult === 'success'
+              ? data.criticalReady
+                ? '成功 · 下次 ×2'
+                : '本轮判定成功'
+              : data.critResult === 'failure'
+                ? '未触发 · 已 +5%'
+                : '失败 +5%'
+          }}</span></template
+        >
+        <template v-else-if="type === 'output'"
+          ><strong>⇥</strong><span>汇合结束 · 自动循环</span></template
+        >
         <template v-else
           ><strong>{{ data.duration }}</strong
           ><span>秒冷却</span></template
@@ -43,7 +59,13 @@ const progress = computed(() => Math.round((props.data.progress ?? 0) * 100))
       </div>
     </div>
     <div class="node-progress"><div :style="{ width: `${progress}%` }" /></div>
-    <Handle id="out" type="source" :position="Position.Right" :connectable="!data.locked" />
+    <Handle
+      v-if="type !== 'output'"
+      id="out"
+      type="source"
+      :position="Position.Right"
+      :connectable="!data.locked"
+    />
   </div>
 </template>
 
